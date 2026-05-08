@@ -65,6 +65,26 @@ function parseDate(v) {
   return null;
 }
 
+// 쉼표/원화기호/공백/괄호(음수) 등이 섞인 숫자 문자열도 안전하게 변환
+function toNum(v) {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    let s = v.trim();
+    if (!s) return 0;
+    // (1,234) → -1234 (회계 표기 음수)
+    const isNeg = /^\(.*\)$/.test(s);
+    if (isNeg) s = s.slice(1, -1);
+    // 쉼표, 통화기호, 공백 등 제거
+    s = s.replace(/[,\s₩$€¥￦￦원]/g, "");
+    if (!s || s === "-" || s === "—") return 0;
+    const n = Number(s);
+    if (!isFinite(n)) return 0;
+    return isNeg ? -n : n;
+  }
+  return 0;
+}
+
 function weekStart(d) {
   const dt = new Date(d);
   dt.setHours(0, 0, 0, 0);
@@ -133,10 +153,10 @@ export default function Dashboard() {
           inflow: inflowType(String(group).trim()),
           name: String(name).trim(),
           detail: r[REQUIRED_COLS.detail] ? String(r[REQUIRED_COLS.detail]).trim() : "-",
-          visits: Number(r[REQUIRED_COLS.visits]) || 0,
-          adCost: Number(r[REQUIRED_COLS.adCost]) || 0,
-          orders: Number(r[REQUIRED_COLS.orders]) || 0,
-          revenue: Number(r[REQUIRED_COLS.revenue]) || 0,
+          visits: toNum(r[REQUIRED_COLS.visits]),
+          adCost: toNum(r[REQUIRED_COLS.adCost]),
+          orders: toNum(r[REQUIRED_COLS.orders]),
+          revenue: toNum(r[REQUIRED_COLS.revenue]),
         });
       }
       if (rows.length === 0) {
